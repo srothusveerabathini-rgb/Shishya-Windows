@@ -256,7 +256,9 @@ def post_text(hwnd, text, delay=0.02):
 
 def post_key(hwnd, name):
     _own(hwnd)
-    vk = VK[name]
+    vk = VK.get(name)
+    if vk is None:
+        raise ValueError(f"post_key: {name!r} is not a recognised key name")
     user32.PostMessageW(hwnd, WM_KEYDOWN, vk, 1)
     if vk == 0x0D:
         user32.PostMessageW(hwnd, WM_CHAR, 13, 1)

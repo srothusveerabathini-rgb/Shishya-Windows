@@ -518,12 +518,14 @@ def run(proc, on_event=None, ask_dir=None):
         if ok:
             ok, verified = confirm(action)
             message = f"{message} — {verified}"
-            if not ok:
-                # One retry, because a slow application is the usual cause.
-                time.sleep(1.2)
-                DO[action["do"]](action)
-                ok, verified = confirm(action)
-                message = f"{message}; retried — {verified}"
+        if not ok:
+             time.sleep(1.2)
+             try:
+                 DO[action["do"]](action)
+             except Exception:
+                  pass
+             ok, verified = confirm(action)
+             message = f"{message}; retried — {verified}"
 
         if ok:
             # A goto names a cell; a type either named one or followed a goto,

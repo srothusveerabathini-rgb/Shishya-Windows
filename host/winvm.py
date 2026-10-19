@@ -295,6 +295,7 @@ def _launch_desktop():
         if _desktop_hwnd():
             return True
         if proc.poll() is not None:
+            _forget_status()
             raise _error(f"the clone's desktop exited at once (code {proc.returncode}) — "
                          f"see {clone_home() / 'Temp' / 'desktop.log'}")
         time.sleep(0.25)
