@@ -198,10 +198,22 @@ def chart_table(name, frame, roles, out_dir, charts, findings):
             ax.set_xlabel("")
             ax.legend(fontsize=8, frameon=False)
             save(fig, out_dir, f"{stem}-averages.png", charts)
-            overall = means.mean(axis=1).sort_values()
-            findings.append(f"{name}: best {group} is {overall.index[-1]} "
-                            f"({overall.iloc[-1]:.1f}), weakest is {overall.index[0]} "
-                            f"({overall.iloc[0]:.1f}); overall average {overall.mean():.1f}.")
+            values = frame[scores].stack()
+            if len(scores) == 1 or (values.min() >= 0 and values.max() <= 100):
+                # Marks out of 100 average meaningfully across subjects.
+                overall = means.mean(axis=1).sort_values()
+                findings.append(f"{name}: best {group} is {overall.index[-1]} "
+                                f"({overall.iloc[-1]:.1f}), weakest is {overall.index[0]} "
+                                f"({overall.iloc[0]:.1f}); overall average {overall.mean():.1f}.")
+            else:
+                # Sales and Profit do not: their average is a number about
+                # nothing ("best month 960" from sales 1500 and profit 420).
+                for c in scores:
+                    col = means[c].dropna().sort_values()
+                    if len(col) >= 2:
+                        findings.append(f"{name}: {c} is highest for {col.index[-1]} "
+                                        f"({col.iloc[-1]:,.1f}) and lowest for {col.index[0]} "
+                                        f"({col.iloc[0]:,.1f}).")
 
     # 2 — the trend. Month columns become one line, per group when few enough.
     if months:

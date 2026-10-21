@@ -217,6 +217,14 @@ def _watch():
             for req in sorted(paths.SHARED.glob(".launch-*.json")):
                 _launch(vm, req)
 
+            fetch = paths.SHARED / ".models-get-requested"
+            if fetch.exists():
+                # The clone's Models app asking for the trained models: the
+                # host downloads them; the request carries no addresses.
+                fetch.unlink(missing_ok=True)
+                import models_dl
+                models_dl.get_in_background()
+
             for req in sorted(paths.SHARED.glob(".run-*.json")):
                 _run_lesson(req)
 

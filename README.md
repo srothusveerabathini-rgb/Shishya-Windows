@@ -16,11 +16,11 @@ with the network switched off.**
 
 ## Download for Windows
 
-**[⬇ Download Shishya-Setup-1.0.4.exe](https://github.com/FireFoxWay/Shishya-Windows/releases/latest/download/Shishya-Setup-1.0.4.exe)**
+**[⬇ Download Shishya-Setup-1.0.7.exe](https://github.com/FireFoxWay/Shishya-Windows/releases/latest/download/Shishya-Setup-1.0.7.exe)**
 (125 MB, Windows 10/11, per-user install, no administrator rights needed)
 
 Prefer no installer? Get the
-[portable zip](https://github.com/FireFoxWay/Shishya-Windows/releases/latest/download/Shishya-1.0.4-portable.zip)
+[portable zip](https://github.com/FireFoxWay/Shishya-Windows/releases/latest/download/Shishya-1.0.7-portable.zip)
 (188 MB), unzip it anywhere, and run `Shishya.exe`. All versions are on the
 [Releases page](https://github.com/FireFoxWay/Shishya-Windows/releases).
 
@@ -170,7 +170,7 @@ An empty desktop with an **Apps** button in the bottom-left corner.
 | **Shishya** | teach a lesson, read it, edit it, run it |
 | **Make a Document** | describe what you need; get a real `.xlsx`, `.docx` or `.pptx` |
 | **Sheets** | open and edit spreadsheets instantly |
-| **LibreOffice Calc / Writer** | the real thing, warm-started |
+| **LibreOffice** | on the Mac only; on Windows, Sheets is what lessons drive |
 | **Activity** | the permission ledger, seen from inside |
 | **Settings** | wallpaper, accent, icon size — applied live |
 
@@ -240,9 +240,30 @@ Models screen's **Test them on Shishya's jobs** runs every installed model
 on each job's real tasks inside the sandbox (`vm/shell/jobbench.py`) and
 gives each job the model that got the most right, fastest.
 
+### Trained models
+
+Each job's model is fine-tuned for Shishya's own work and published with the
+release: tasks with known answers, only replies that pass the job's own check
+(a script that prints the right answer in the sandbox; an answer that quotes
+the right fact or honestly declines; a document with every given fact in it),
+a LoRA trained on those, and a comparison on held-out material against the
+model it would replace before it is shipped. The Models screen's **Get
+Shishya's trained models** downloads them and gives each its job; the
+results are in each release's notes. On material none of them trained on:
+
+| Job | Trained model | Built on | Right | The model it replaces |
+|---|---|---|---|---|
+| Code | `shishya-code-trained` | Qwen2.5-Coder 7B | 74% | 59% |
+| Answers | `shishya-answers-trained` | DeepSeek-R1-0528-Qwen3 8B | 100% (89 of 89) | 99% (`deepseek-r1:8b`) |
+| Documents | `shishya-documents-trained` | Qwen3 4B Instruct | 82% (49 of 60) | 75% (`shishya-answers`) |
+| Answers, larger | `shishya-oss-trained` | gpt-oss 20B | 87% (71 of 82) | 82% (`gpt-oss:20b`) |
+
+The gpt-oss model is 14 GB and needs a 16 GB graphics card; it takes no job
+by itself — pick it for Answers on the Models screen if your machine runs it.
+
 ### VS Code
 
-*Not in the 1.0.4 download yet* — build with `windows/build.ps1` to include it.
+*Not in the release downloads yet* — build with `windows/build.ps1` to include it.
 The real VS Code is bundled and runs **inside the sandbox** like every other
 app: no network, its settings and extensions in the clone's own home,
 `shared\work` as its folder, its window on the clone's screen. Open it from
@@ -346,7 +367,9 @@ dependency at a demo table.
 
 ## Status
 
-**Works, and is checked.** `./demo.sh check` runs 24 assertions in about a
+**Works, and is checked.** On Windows, `runtime\python.exe windows\check.py` (with
+Shishya open) exercises 23 advertised features for real and prints PASS or FAIL
+for each; on the Mac, `./demo.sh check` runs 24 assertions in about a
 minute — including typing a key into a real window and reading it back, and
 asking the *guest* whether the egress lock is on rather than remembering
 what it was told.
@@ -356,8 +379,10 @@ rollback; the permission ledger; the egress lock; document Q&A over dropped
 files; document generation (`.xlsx` / `.docx` / `.pptx`); **the executor**,
 which performs a taught procedure against live LibreOffice and reads each
 cell back to check it landed; GST billing, tax invoices, void and returns;
-stock audit, scheduled runs, alerts, backups; clerk/head roles with approvals
-between them; a Tally XML round trip; a six-screen ERP; and the terminal.
+stock audit, scheduled runs, alerts, backups; approvals (clerk/head roles are
+in the code; the switch is hidden while one person runs a copy); a Tally XML
+round trip; the shop screens (billing counter and bills, banking, credit,
+reports, findings); and the terminal.
 
 **It trains its own model.** Running someone else's model locally is ordinary
 now. `vm/forecast.py` trains a demand forecaster on the shop's own purchase

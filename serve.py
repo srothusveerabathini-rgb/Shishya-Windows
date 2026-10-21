@@ -508,6 +508,10 @@ class Handler(SimpleHTTPRequestHandler):
         if route == "ledger":
             return {"entries": ledger.read(limit=int(body.get("limit", 300)))}
 
+        if route == "models/state":
+            import models_dl
+            return models_dl.state()
+
         if route == "sandbox" and WINDOWS:
             # The boundary as it actually is: the grants on disk, what is
             # running and with which capabilities, what crossed the pipe.
@@ -520,6 +524,12 @@ class Handler(SimpleHTTPRequestHandler):
         if method != "POST":
             self.send_error(405)
             return None
+
+        if route == "models/get":
+            # Shishya's trained models from the latest release, into Ollama
+            # (host/models_dl.py). The host downloads; the sandbox never does.
+            import models_dl
+            return models_dl.get_in_background(body.get("only"))
 
         if route == "limits" and WINDOWS:
             # The dock's dials: the sandbox's share of this machine, changed

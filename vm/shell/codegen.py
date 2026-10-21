@@ -255,6 +255,27 @@ def describe_billing():
             "today's catalogue cost:\n" + "\n".join(out))
 
 
+def csv_shape(path, look=500, few=12):
+    """A CSV's columns, row count, and what its short columns contain.
+
+    Only spreadsheets used to be described. Asked to count the students in
+    class-9b-term1.csv, every model saw the file's name and no columns, and
+    borrowed "Students" from the workbook listed beside it.
+    """
+    import csv
+    with open(path, encoding="utf-8-sig", errors="replace", newline="") as fh:
+        rows = list(csv.reader(fh, delimiter="\t" if path.suffix.lower() == ".tsv" else ","))
+    if not rows:
+        return None
+    header, body = rows[0], rows[1:]
+    out = [f"    columns: {', '.join(header)}", f"    {len(body)} rows"]
+    for i, col in enumerate(header):
+        seen = {r[i].strip() for r in body[:look] if i < len(r) and r[i].strip()}
+        if 1 < len(seen) <= few and not all(v.replace(".", "", 1).isdigit() for v in seen):
+            out.append(f"    {col} contains only: {', '.join(sorted(seen))}")
+    return "\n".join(out)
+
+
 def describe_material():
     lines, spent = [], 0
     for p in sorted(common.TRAINING.iterdir()):
@@ -266,6 +287,11 @@ def describe_material():
         if p.suffix.lower() in (".xlsx", ".xlsm"):
             try:
                 shape = sheet_shape(p)
+            except Exception:
+                shape = None
+        elif p.suffix.lower() in (".csv", ".tsv"):
+            try:
+                shape = csv_shape(p)
             except Exception:
                 shape = None
         if shape:
@@ -333,7 +359,32 @@ def repair_regex(code):
 
 def repair(raw):
     """Everything we fix about generated code, in one place."""
-    return repair_regex(repair_calls(repair_paths(strip_fences(raw))))
+    return repair_imports(repair_regex(repair_calls(repair_paths(strip_fences(raw)))))
+
+
+# Names the models use without importing them. The commonest single failure
+# on the code benchmark — 72 of 95 wrong scripts — was Path(...) with no
+# `from pathlib import Path`, a script right in every other way.
+IMPORTS = [
+    (re.compile(r"\bPath\s*[.(]"), re.compile(r"^\s*from\s+pathlib\s+import\s+.*\bPath\b", re.M),
+     "from pathlib import Path"),
+    (re.compile(r"\bpd\."), re.compile(r"^\s*import\s+pandas\s+as\s+pd\b", re.M), "import pandas as pd"),
+    (re.compile(r"\bnp\."), re.compile(r"^\s*import\s+numpy\s+as\s+np\b", re.M), "import numpy as np"),
+    (re.compile(r"\bplt\."), re.compile(r"^\s*(import\s+matplotlib\.pyplot\s+as\s+plt|from\s+matplotlib\s+import\s+pyplot\s+as\s+plt)\b", re.M),
+     "import matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot as plt"),
+]
+STDLIB = ("re", "json", "os", "math", "csv", "datetime", "statistics", "collections")
+
+
+def repair_imports(code):
+    """Add an import the script uses but never made."""
+    missing = [line for used, made, line in IMPORTS if used.search(code) and not made.search(code)]
+    for mod in STDLIB:
+        if re.search(rf"\b{mod}\.", code) and not re.search(
+                rf"^\s*(import\s+[\w, ]*\b{mod}\b|from\s+{mod}\s+import)", code, re.M) \
+                and not re.search(rf"^\s*from\s+\w+\s+import\s+.*\b{mod}\b", code, re.M):
+            missing.append(f"import {mod}")
+    return "\n".join(missing + [code]) if missing else code
 
 
 def usable(code):

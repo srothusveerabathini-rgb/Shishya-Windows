@@ -96,6 +96,7 @@ class ModelsApp(kit.Window):
         feet = QHBoxLayout()
         self.status = kit.label("", role="muted", wrap=True)
         feet.addWidget(self.status, 1)
+        feet.addWidget(kit.button("Get Shishya's trained models", self.on_get_trained))
         feet.addWidget(kit.button("Test them on Shishya's jobs", self.on_test))
         feet.addWidget(kit.button("Remove", self.on_remove))
         feet.addWidget(kit.button("Add selected", self.on_add, primary=True))
@@ -176,6 +177,32 @@ class ModelsApp(kit.Window):
             return self.status.setText(f"{name} is doing a job — give that job to another model first.")
         kit.background(lambda: (common.model_request("DELETE", "/api/delete", {"name": name}),
                                 f"Removed {name}.")[1], self.done)
+
+    def on_get_trained(self):
+        """Ask the host for the models trained for Shishya's jobs. It
+        downloads them from the release (several GB), checks each against its
+        checksum, puts them into Ollama and gives each its job."""
+        (common.SHARED / ".models-get-requested").write_text("1", encoding="utf-8")
+        self.status.setText("Asked for Shishya's trained models — several GB; this can take a while.")
+        self._poll_get()
+
+    def _poll_get(self):
+        from PySide6.QtCore import QTimer
+        try:
+            s = json.loads((common.SHARED / ".models-get.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            s = {"state": "waiting"}
+        words = {"downloading": f"Downloading {s.get('model', '')}: {s.get('pct', 0)}%",
+                 "installing": f"Putting {s.get('model', '')} into Ollama…",
+                 "done": "Trained models installed: " + ", ".join(s.get("models", [])),
+                 "failed": ("Installed: " + ", ".join(s["models"]) + ". " if s.get("models") else "")
+                           + f"Could not get: {s.get('error', '')}"}
+        self.status.setText(words.get(s.get("state"), "Waiting for the host…"))
+        if s.get("state") in ("done", "failed"):
+            self.choice = json.loads(common.ROLES.read_text(encoding="utf-8")) if common.ROLES.exists() else {}
+            self.reload()
+        else:
+            QTimer.singleShot(2000, self._poll_get)
 
     def on_test(self):
         """Run every installed model on each job's real tests here in the

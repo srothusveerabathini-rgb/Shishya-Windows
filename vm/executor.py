@@ -70,6 +70,15 @@ QUOTED = re.compile(r"['\"‘’“”]([^'\"‘’“”]{1,80})['\"‘’“�
 TYPING = ("type", "enter", "write", "input", "fill", "put")
 PRESSING = ("click", "press", "choose", "select the", "push")
 OPENING = ("open", "launch", "start")
+# The clone's apps by the names a person writes. A lesson edited by hand says
+# "Open the Sheets application", with no quotes and no recorded target, and
+# the README promises any line can be edited — so the name in the sentence is
+# enough. Longest first: "training data" before "data". (host/hands.py
+# OPENABLE says which app each name opens.)
+APP_NAMES = sorted(("calc", "sheets", "spreadsheet", "excel", "files", "training data", "reports",
+                    "billing", "inbox", "shishya", "chat", "make a document", "documents", "code",
+                    "findings", "activity", "settings", "models", "banking", "credit", "browser",
+                    "teach", "task manager"), key=len, reverse=True)
 
 
 def understand(step):
@@ -97,6 +106,8 @@ def understand(step):
 
     if any(v in low for v in OPENING):
         what = quoted.group(1) if quoted else named
+        if not what:
+            what = next((n for n in APP_NAMES if re.search(rf"\b{re.escape(n)}\b", low)), None)
         if what:
             return {"do": "open", "what": what, "text": text}
 

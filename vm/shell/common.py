@@ -352,15 +352,27 @@ def ask(prompt, system=None, schema=None, timeout=600, budget=None, job=None, mo
         return _strip_think(model_request("POST", "/api/generate", body,
                                           timeout=timeout).get("response", ""))
 
+    def attempt(budget):
+        try:
+            return once(budget)
+        except ModelUnreachable:
+            # Ollama's runner can die while it swaps one large model off a
+            # 16 GB graphics card for another (gpt-oss's 13 GB out, the
+            # answers model in): "llama-server process has terminated". The
+            # next request starts a fresh runner, so one more try after a
+            # pause goes through instead of failing the person's question.
+            time.sleep(5)
+            return once(budget)
+
     if budget:
         # Code needs more room than prose: the model reasons first, and a
         # script that stops halfway is worse than no script.
         body["options"]["num_predict"] = budget
     try:
-        answer = once(body["options"]["num_predict"])
+        answer = attempt(body["options"]["num_predict"])
         if not answer:
             # It thought until it ran out of room. Once more, with more room.
-            answer = once(body["options"]["num_predict"] * 2)
+            answer = attempt(body["options"]["num_predict"] * 2)
         return answer or (
             "I thought my way through that without reaching an answer — it was "
             "too broad to settle. Ask about one thing at a time and I'll get "

@@ -118,7 +118,7 @@ class CodeApp(kit.Window):
         self.writebtn.setEnabled(False)
         self.status.setText("Writing it…")
         common.set_state("working")
-        kit.background(lambda: codegen.strip_fences(common.ask_job(
+        kit.background(lambda: codegen.repair(common.ask_job(
             "code", f"{codegen.describe_material()}\n\nWrite a Python script that: {brief}",
             system=SYSTEM, budget=6144)), self.wrote)
 

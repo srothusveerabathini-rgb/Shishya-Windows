@@ -412,7 +412,12 @@ def press_control(name):
 OPENABLE = {"calc": "sheet_app.py", "sheets": "sheet_app.py", "spreadsheet": "sheet_app.py",
             "excel": "sheet_app.py", "files": "files_app.py",
             "training data": "training_app.py", "reports": "reports_app.py",
-            "billing": "billing_app.py", "inbox": "inbox_app.py", "shishya": "chat_app.py"}
+            "billing": "billing_app.py", "inbox": "inbox_app.py", "shishya": "chat_app.py",
+            "chat": "chat_app.py", "make a document": "make_app.py", "documents": "make_app.py",
+            "code": "code_app.py", "findings": "findings_app.py", "activity": "activity_app.py",
+            "settings": "settings_app.py", "models": "models_app.py", "banking": "bank_app.py",
+            "credit": "credit_app.py", "browser": "browser_app.py", "teach": "shishya_app.py",
+            "task manager": "system_app.py"}
 
 
 def open_app(what):

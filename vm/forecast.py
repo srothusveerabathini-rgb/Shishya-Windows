@@ -55,15 +55,42 @@ def _shared():
     for base in (Path.home() / "shared", HERE.parent / "shared"):
         if (base / "training" / HISTORY_NAME).is_file():
             return base
+    # Any shop's history, not one file name: the first shared folder whose
+    # training material holds a monthly sheet (see _history).
+    for base in (Path.home() / "shared", HERE.parent / "shared"):
+        if _history(base) is not None:
+            return base
     return HERE.parent / "shared"             # nothing found; fail with a real path
 
 
+def _history(base):
+    """The purchase history in this shared folder: the original file if it is
+    there, otherwise the first spreadsheet whose header has at least LAGS + 2
+    month columns — one row per product, one column per month."""
+    import datetime as dt
+    folder = base / "training"
+    if (folder / HISTORY_NAME).is_file():
+        return folder / HISTORY_NAME
+    if not folder.is_dir():
+        return None
+    for path in sorted(folder.glob("*.xlsx")):
+        try:
+            import openpyxl
+            ws = openpyxl.load_workbook(path, read_only=True, data_only=True).worksheets[0]
+            header = next(ws.iter_rows(max_row=1, values_only=True))
+        except Exception:
+            continue
+        if sum(isinstance(h, dt.datetime) for h in header) >= LAGS + 2:
+            return path
+    return None
+
+
+LAGS = 6          # months of history the model sees
 SHARED = _shared()
-HISTORY = SHARED / "training" / HISTORY_NAME
+HISTORY = _history(SHARED) or SHARED / "training" / HISTORY_NAME
 WEIGHTS = SHARED / "models" / "forecast.npz"
 REPORT = SHARED / "models" / "forecast.json"
 
-LAGS = 6          # months of history the model sees
 HIDDEN = 24       # hidden units — small on purpose; see fit()
 SEED = 7
 
@@ -272,7 +299,7 @@ def verdict(m):
 
 def train():
     print("  reading this shop's own purchase history…")
-    ids, names, series, months = load()
+    ids, names, series, months = load(HISTORY)
     print(f"  {series.shape[0]:,} products x {series.shape[1]} months\n")
     p, m = evaluate(series)
     m = verdict(m)
@@ -300,7 +327,7 @@ def ahead(product_id):
         sys.exit("no model yet — run: python3 forecast.py train")
     d = np.load(WEIGHTS, allow_pickle=True)
     p = {k: d[k] for k in ("W1", "b1", "W2", "b2")}
-    ids, names, series, months = load()
+    ids, names, series, months = load(HISTORY)
     try:
         i = ids.index(product_id)
     except ValueError:
@@ -317,6 +344,8 @@ def ahead(product_id):
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "train"
     if cmd == "train":
+        if len(sys.argv) > 2:                # a history file named outright
+            HISTORY = Path(sys.argv[2])
         train()
     elif cmd == "check":
         print(json.dumps(json.loads(REPORT.read_text(encoding="utf-8")), indent=2)

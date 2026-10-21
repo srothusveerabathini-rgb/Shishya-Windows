@@ -66,3 +66,13 @@ shared/billing/*
 # Build output: made by windows/build.ps1, published as release assets.
 *.exe
 *-portable.zip
+
+freegraph-out/
+# train/: what the scripts download and make, never the scripts
+train/venv/
+train/base/
+train/work/
+train/out/
+train/smoke/
+train/llama.cpp/
+train/tools/
